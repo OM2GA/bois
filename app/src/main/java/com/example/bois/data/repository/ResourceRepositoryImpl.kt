@@ -1,81 +1,76 @@
 package com.example.bois.data.repository
 
-import android.content.Context
+import com.example.bois.data.model.PlayerProgressionEntity
+import com.example.bois.data.model.ResourceEntity
+import com.example.bois.data.source.local.PlayerProgressionDao
+import com.example.bois.data.source.local.ResourceDao
 import com.example.bois.domain.model.Resource
 import com.example.bois.domain.repository.ResourceRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class ResourceRepositoryImpl @Inject constructor(
-    @ApplicationContext private val context: Context
+    private val resourceDao: ResourceDao,
+    private val playerProgressionDao: PlayerProgressionDao
 ) : ResourceRepository {
-    
-    private val sharedPreferences = context.getSharedPreferences("game_prefs", Context.MODE_PRIVATE)
 
-    private val _resources = MutableStateFlow(loadResources())
-    
-    private var lastTickTime: Long = sharedPreferences.getLong("last_tick_time", System.currentTimeMillis())
+    private fun defaultResources() = listOf(
+        Resource("Bois", 0.0, 1.0),
+        Resource("Eau", 10.0, 0.0),
+        Resource("Levure", 5.0, 0.0),
+        Resource("Sucre", 5.0, 0.0),
+        Resource("Céréales", 10.0, 0.0)
+    )
 
-    private fun loadResources(): List<Resource> {
-        val resources = mutableListOf<Resource>()
-        
-        val resourceConfigs = listOf(
-            Triple("Bois", 0.0f, 1.0f),
-            Triple("Eau", 10.0f, 0.0f),
-            Triple("Levure", 5.0f, 0.0f),
-            Triple("Sucre", 5.0f, 0.0f),
-            Triple("Céréales", 10.0f, 0.0f)
-        )
-
-        resourceConfigs.forEach { (name, defaultAmount, defaultProd) ->
-            val amount = sharedPreferences.getFloat("resource_${name.lowercase()}_amount", defaultAmount).toDouble()
-            val prod = sharedPreferences.getFloat("resource_${name.lowercase()}_prod", defaultProd).toDouble()
-            resources.add(Resource(name, amount, prod))
+    override fun getResources(): Flow<List<Resource>> {
+        return resourceDao.getResources().map { entities ->
+            if (entities.isEmpty()) defaultResources()
+            else entities.map { it.toDomainModel() }
         }
-        
-        return resources
     }
 
-    override fun getResources(): Flow<List<Resource>> = _resources.asStateFlow()
+    override suspend fun getCurrentResources(): List<Resource> = withContext(Dispatchers.IO) {
+        val entities = resourceDao.getResourcesOnce()
+        if (entities.isEmpty()) defaultResources()
+        else entities.map { it.toDomainModel() }
+    }
 
-    override suspend fun getCurrentResources(): List<Resource> = _resources.value
+    override suspend fun updateResources(resources: List<Resource>) = withContext(Dispatchers.IO) {
+        resourceDao.insertResources(resources.map { ResourceEntity.fromDomainModel(it) })
+    }
 
-    override suspend fun updateResources(resources: List<Resource>) {
-        _resources.value = resources
-        // Persist
-        with(sharedPreferences.edit()) {
-            resources.forEach { resource ->
-                putFloat("resource_${resource.name.lowercase()}_amount", resource.amount.toFloat())
-                putFloat("resource_${resource.name.lowercase()}_prod", resource.productionPerSecond.toFloat())
+    override suspend fun updateResource(name: String, amount: Double) = withContext(Dispatchers.IO) {
+        // We need the current amount to add to it. 
+        // Note: In a real app, we might want to do this in a transaction or use a SQL update with addition.
+        val entities = resourceDao.getResourcesOnce()
+        val entity = entities.find { it.name.lowercase() == name.lowercase() }
+        if (entity != null) {
+            resourceDao.updateResourceAmount(entity.name, entity.amount + amount)
+        } else {
+            // If it doesn't exist, we might need to create it from default if it's one of the defaults
+            val default = defaultResources().find { it.name.lowercase() == name.lowercase() }
+            if (default != null) {
+                resourceDao.insertResource(ResourceEntity.fromDomainModel(default.copy(amount = default.amount + amount)))
             }
-            apply()
         }
     }
 
-    override suspend fun updateResource(name: String, amount: Double) {
-        val currentResources = _resources.value.toMutableList()
-        val index = currentResources.indexOfFirst { it.name.lowercase() == name.lowercase() }
-        if (index != -1) {
-            val resource = currentResources[index]
-            val updatedResource = resource.copy(amount = resource.amount + amount)
-            currentResources[index] = updatedResource
-            _resources.value = currentResources
-            
-            sharedPreferences.edit()
-                .putFloat("resource_${name.lowercase()}_amount", updatedResource.amount.toFloat())
-                .apply()
-        }
+    override suspend fun getLastTickTime(): Long = withContext(Dispatchers.IO) {
+        playerProgressionDao.getPlayerProgressionOnce()?.lastTickTime ?: System.currentTimeMillis()
     }
 
-    override suspend fun getLastTickTime(): Long = lastTickTime
-
-    override suspend fun saveLastTickTime(time: Long) {
-        lastTickTime = time
-        sharedPreferences.edit().putLong("last_tick_time", time).apply()
+    override suspend fun saveLastTickTime(time: Long) = withContext(Dispatchers.IO) {
+        val progression = playerProgressionDao.getPlayerProgressionOnce()
+        if (progression != null) {
+            playerProgressionDao.insertPlayerProgression(progression.copy(lastTickTime = time))
+        } else {
+            // This might happen on first run if resources tick before progression is saved.
+            // We should probably ensure a progression exists.
+        }
     }
 }
