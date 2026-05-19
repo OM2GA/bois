@@ -6,6 +6,7 @@ import com.example.bois.domain.model.CompanyStats
 import com.example.bois.domain.model.Resource
 import com.example.bois.domain.usecase.GetCompanyStatsUseCase
 import com.example.bois.domain.usecase.GetGameDataUseCase
+import com.example.bois.domain.usecase.GetGameStateUseCase
 import com.example.bois.domain.usecase.ResourceTickerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +20,8 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val getGameDataUseCase: GetGameDataUseCase,
     private val resourceTickerUseCase: ResourceTickerUseCase,
-    private val getCompanyStatsUseCase: GetCompanyStatsUseCase
+    private val getCompanyStatsUseCase: GetCompanyStatsUseCase,
+    private val getGameStateUseCase: GetGameStateUseCase
 ) : ViewModel() {
     
     private val _gameData = MutableStateFlow("")
@@ -34,7 +36,7 @@ class MainViewModel @Inject constructor(
     init {
         startTicker()
         loadGameData()
-        observeCompanyStats()
+        observeGameState()
     }
 
     fun loadGameData() {
@@ -46,16 +48,17 @@ class MainViewModel @Inject constructor(
 
     fun startTicker() {
         viewModelScope.launch {
-            resourceTickerUseCase().collectLatest { updatedResources ->
-                _resources.value = updatedResources
+            resourceTickerUseCase().collectLatest { 
+                // Ticker updates the database, GameState flow will pick it up
             }
         }
     }
 
-    private fun observeCompanyStats() {
+    private fun observeGameState() {
         viewModelScope.launch {
-            getCompanyStatsUseCase().collectLatest { stats ->
-                _companyStats.value = stats
+            getGameStateUseCase().collectLatest { state ->
+                _resources.value = state.resources
+                _companyStats.value = state.companyStats
             }
         }
     }

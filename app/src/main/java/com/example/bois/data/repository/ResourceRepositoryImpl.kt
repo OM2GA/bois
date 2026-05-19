@@ -1,8 +1,6 @@
 package com.example.bois.data.repository
 
-import com.example.bois.data.model.PlayerProgressionEntity
 import com.example.bois.data.model.ResourceEntity
-import com.example.bois.data.source.local.PlayerProgressionDao
 import com.example.bois.data.source.local.ResourceDao
 import com.example.bois.domain.model.Resource
 import com.example.bois.domain.repository.ResourceRepository
@@ -15,8 +13,7 @@ import javax.inject.Singleton
 
 @Singleton
 class ResourceRepositoryImpl @Inject constructor(
-    private val resourceDao: ResourceDao,
-    private val playerProgressionDao: PlayerProgressionDao
+    private val resourceDao: ResourceDao
 ) : ResourceRepository {
 
     private fun defaultResources() = listOf(
@@ -57,20 +54,6 @@ class ResourceRepositoryImpl @Inject constructor(
             if (default != null) {
                 resourceDao.insertResource(ResourceEntity.fromDomainModel(default.copy(amount = default.amount + amount)))
             }
-        }
-    }
-
-    override suspend fun getLastTickTime(): Long = withContext(Dispatchers.IO) {
-        playerProgressionDao.getPlayerProgressionOnce()?.lastTickTime ?: System.currentTimeMillis()
-    }
-
-    override suspend fun saveLastTickTime(time: Long) = withContext(Dispatchers.IO) {
-        val progression = playerProgressionDao.getPlayerProgressionOnce()
-        if (progression != null) {
-            playerProgressionDao.insertPlayerProgression(progression.copy(lastTickTime = time))
-        } else {
-            // This might happen on first run if resources tick before progression is saved.
-            // We should probably ensure a progression exists.
         }
     }
 }

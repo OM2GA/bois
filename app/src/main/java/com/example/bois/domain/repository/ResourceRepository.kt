@@ -8,6 +8,4 @@ interface ResourceRepository {
     suspend fun getCurrentResources(): List<Resource>
     suspend fun updateResources(resources: List<Resource>)
     suspend fun updateResource(name: String, amount: Double)
-    suspend fun getLastTickTime(): Long
-    suspend fun saveLastTickTime(time: Long)
 }

@@ -2,10 +2,12 @@ package com.example.bois.di
 
 import com.example.bois.data.repository.AlcoholRepositoryImpl
 import com.example.bois.data.repository.CompanyRepositoryImpl
+import com.example.bois.data.repository.GameRepositoryImpl
 import com.example.bois.data.repository.MainRepositoryImpl
 import com.example.bois.data.repository.ResourceRepositoryImpl
 import com.example.bois.domain.repository.AlcoholRepository
 import com.example.bois.domain.repository.CompanyRepository
+import com.example.bois.domain.repository.GameRepository
 import com.example.bois.domain.repository.MainRepository
 import com.example.bois.domain.repository.ResourceRepository
 import dagger.Binds
@@ -41,4 +43,10 @@ abstract class RepositoryModule {
     abstract fun bindAlcoholRepository(
         alcoholRepositoryImpl: AlcoholRepositoryImpl
     ): AlcoholRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindGameRepository(
+        gameRepositoryImpl: GameRepositoryImpl
+    ): GameRepository
 }
