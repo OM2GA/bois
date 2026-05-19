@@ -2,7 +2,9 @@ package com.example.bois.presentation.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.bois.domain.model.CompanyStats
 import com.example.bois.domain.model.Resource
+import com.example.bois.domain.usecase.GetCompanyStatsUseCase
 import com.example.bois.domain.usecase.GetGameDataUseCase
 import com.example.bois.domain.usecase.ResourceTickerUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,7 +18,8 @@ import javax.inject.Inject
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val getGameDataUseCase: GetGameDataUseCase,
-    private val resourceTickerUseCase: ResourceTickerUseCase
+    private val resourceTickerUseCase: ResourceTickerUseCase,
+    private val getCompanyStatsUseCase: GetCompanyStatsUseCase
 ) : ViewModel() {
     
     private val _gameData = MutableStateFlow("")
@@ -25,9 +28,13 @@ class MainViewModel @Inject constructor(
     private val _resources = MutableStateFlow<List<Resource>>(emptyList())
     val resources: StateFlow<List<Resource>> = _resources.asStateFlow()
 
+    private val _companyStats = MutableStateFlow<CompanyStats?>(null)
+    val companyStats: StateFlow<CompanyStats?> = _companyStats.asStateFlow()
+
     init {
         startTicker()
         loadGameData()
+        observeCompanyStats()
     }
 
     fun loadGameData() {
@@ -41,6 +48,14 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             resourceTickerUseCase().collectLatest { updatedResources ->
                 _resources.value = updatedResources
+            }
+        }
+    }
+
+    private fun observeCompanyStats() {
+        viewModelScope.launch {
+            getCompanyStatsUseCase().collectLatest { stats ->
+                _companyStats.value = stats
             }
         }
     }

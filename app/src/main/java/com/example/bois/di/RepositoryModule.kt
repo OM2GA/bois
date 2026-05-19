@@ -1,7 +1,9 @@
 package com.example.bois.di
 
+import com.example.bois.data.repository.CompanyRepositoryImpl
 import com.example.bois.data.repository.MainRepositoryImpl
 import com.example.bois.data.repository.ResourceRepositoryImpl
+import com.example.bois.domain.repository.CompanyRepository
 import com.example.bois.domain.repository.MainRepository
 import com.example.bois.domain.repository.ResourceRepository
 import dagger.Binds
@@ -25,4 +27,10 @@ abstract class RepositoryModule {
     abstract fun bindResourceRepository(
         resourceRepositoryImpl: ResourceRepositoryImpl
     ): ResourceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindCompanyRepository(
+        companyRepositoryImpl: CompanyRepositoryImpl
+    ): CompanyRepository
 }

@@ -19,11 +19,26 @@ import com.example.bois.presentation.main.MainViewModel
 @Composable
 fun DashboardScreen(viewModel: MainViewModel = hiltViewModel()) {
     val resources by viewModel.resources.collectAsState()
+    val companyStats by viewModel.companyStats.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(text = "Tableau de Bord", style = MaterialTheme.typography.headlineLarge)
-            Spacer(modifier = Modifier.height(16.dp))
+            
+            companyStats?.let { stats ->
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(text = "Entreprise", style = MaterialTheme.typography.titleLarge)
+                Text(text = "Niveau : ${stats.level}")
+                Text(text = "Argent : ${String.format("%.2f", stats.money)} €")
+                Text(text = "Réputation : ${String.format("%.1f", stats.reputation)}")
+                Text(
+                    text = "Expérience : ${String.format("%.0f", stats.experience)} / ${String.format("%.0f", stats.experienceToNextLevel)}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(text = "Ressources", style = MaterialTheme.typography.titleLarge)
             resources.forEach { resource ->
                 Text(
                     text = "${resource.name} : ${String.format("%.2f", resource.amount)}",
