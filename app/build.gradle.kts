@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt.android)
 }
@@ -33,6 +34,7 @@ android {
     }
     buildFeatures {
         prefab = true
+        compose = true
     }
     externalNativeBuild {
         cmake {
@@ -47,6 +49,19 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.games.activity)
     implementation(libs.material)
+
+    // Compose
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    androidTestImplementation(composeBom)
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
 
     // Lifecycle
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
