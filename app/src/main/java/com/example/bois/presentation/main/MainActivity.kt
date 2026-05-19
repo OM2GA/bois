@@ -5,16 +5,13 @@ import android.util.Log
 import android.view.View
 import androidx.activity.viewModels
 import androidx.lifecycle.Observer
-import com.example.bois.data.repository.MainRepositoryImpl
-import com.example.bois.domain.usecase.GetGameDataUseCase
 import com.google.androidgamesdk.GameActivity
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : GameActivity() {
 
-    // Simple manual injection for demonstration (Hilt is recommended for production)
-    private val viewModel: MainViewModel by viewModels {
-        MainViewModelFactory(GetGameDataUseCase(MainRepositoryImpl()))
-    }
+    private val viewModel: MainViewModel by viewModels()
 
     companion object {
         init {
