@@ -22,11 +22,23 @@ class ResourceRepositoryImpl @Inject constructor(
     private var lastTickTime: Long = sharedPreferences.getLong("last_tick_time", System.currentTimeMillis())
 
     private fun loadResources(): List<Resource> {
-        val boisAmount = sharedPreferences.getFloat("resource_bois_amount", 0.0f).toDouble()
-        val boisProd = sharedPreferences.getFloat("resource_bois_prod", 1.0f).toDouble()
-        return listOf(
-            Resource("Bois", boisAmount, boisProd)
+        val resources = mutableListOf<Resource>()
+        
+        val resourceConfigs = listOf(
+            Triple("Bois", 0.0f, 1.0f),
+            Triple("Eau", 10.0f, 0.0f),
+            Triple("Levure", 5.0f, 0.0f),
+            Triple("Sucre", 5.0f, 0.0f),
+            Triple("Céréales", 10.0f, 0.0f)
         )
+
+        resourceConfigs.forEach { (name, defaultAmount, defaultProd) ->
+            val amount = sharedPreferences.getFloat("resource_${name.lowercase()}_amount", defaultAmount).toDouble()
+            val prod = sharedPreferences.getFloat("resource_${name.lowercase()}_prod", defaultProd).toDouble()
+            resources.add(Resource(name, amount, prod))
+        }
+        
+        return resources
     }
 
     override fun getResources(): Flow<List<Resource>> = _resources.asStateFlow()
@@ -42,6 +54,21 @@ class ResourceRepositoryImpl @Inject constructor(
                 putFloat("resource_${resource.name.lowercase()}_prod", resource.productionPerSecond.toFloat())
             }
             apply()
+        }
+    }
+
+    override suspend fun updateResource(name: String, amount: Double) {
+        val currentResources = _resources.value.toMutableList()
+        val index = currentResources.indexOfFirst { it.name.lowercase() == name.lowercase() }
+        if (index != -1) {
+            val resource = currentResources[index]
+            val updatedResource = resource.copy(amount = resource.amount + amount)
+            currentResources[index] = updatedResource
+            _resources.value = currentResources
+            
+            sharedPreferences.edit()
+                .putFloat("resource_${name.lowercase()}_amount", updatedResource.amount.toFloat())
+                .apply()
         }
     }
 
